@@ -98,7 +98,10 @@ Actualiza esta sección al cerrar cada tarea.
 **2026-11-04: base creada.**
 - Expo SDK 58 con la configuración, los ambientes, ESLint, Jest y la estructura de carpetas.
 - `src/App.tsx` todavía es un marcador.
-- El primer development build para arm64 se lanzó para validar la cadena (prebuild, Gradle e instalación en el HY416).
+- El primer development build para arm64 compiló, en 2 min 44 s, y quedó instalado en el HY416 como
+  `com.santapriscila.mobileapp.dev`, junto a la app en uso.
+- Falta ver la pantalla cargando el JavaScript: el equipo estaba bloqueado. Si Metro no responde en
+  el puerto 8081, levántalo con `pnpm start`.
 
 **Plan:**
 1. Módulo nativo `modules/hopeland`: lector de códigos, gatillo y RFID. Se porta desde
