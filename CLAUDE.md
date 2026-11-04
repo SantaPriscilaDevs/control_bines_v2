@@ -90,3 +90,87 @@ pnpm android         # compila el development build y lo instala en el equipo co
 pnpm start           # servidor de desarrollo (con el development build ya instalado)
 pnpm lint && pnpm typecheck && pnpm test
 ```
+
+## Estado y próximos pasos
+
+Actualiza esta sección al cerrar cada tarea.
+
+**2026-11-04: base creada.**
+- Expo SDK 58 con la configuración, los ambientes, ESLint, Jest y la estructura de carpetas.
+- `src/App.tsx` todavía es un marcador.
+- El primer development build para arm64 se lanzó para validar la cadena (prebuild, Gradle e instalación en el HY416).
+
+**Plan:**
+1. Módulo nativo `modules/hopeland`: lector de códigos, gatillo y RFID. Se porta desde
+   `../CtrlBines/core/hardware` y `core/lectura`. Los SDK están en `../CtrlBines/app/libs` y
+   `app/src/main/jniLibs`. Es la parte con más riesgo: probarla pronto en el HY416.
+2. Base en JavaScript:
+   - Tema y primitivas, desde GS Mobile, con Ingreso verde y Salida roja.
+   - La fuente Aniuk.
+   - Navegación, cliente HTTP, sesión, login, elegir planta e Inicio.
+   - Menú lateral con lo que no son eventos.
+3. Captura de eventos con guía de movilización:
+   - Escaneo y campo para escribir la guía, siempre a la vista.
+   - Consulta y registro de la guía.
+   - Cola sin conexión en SQLite.
+   - Mensajes de rechazo formales.
+4. Guías de remisión con su lectura RFID, salida de exportación y sellado, guías virtuales con su
+   PDF, Validar personal, Historial y Perfil.
+5. Pruebas en el HY416 y el HY820 contra producción, con cuidado de lo que escribe (ver abajo).
+
+**Pendiente de decidir:**
+- El nombre definitivo de la app y del paquete. Para reemplazar la app en uso sin desinstalarla
+  harían falta el paquete `com.ipsp.ctrlbines` y su misma firma.
+- Si todos los textos pasan a usted. Por ahora, usted en mensajes y errores.
+
+## Cómo trabajamos
+
+- Todo en español: respuestas, commits, comentarios y textos.
+- **Commits solo locales**: sin push, salvo que el usuario lo pida. Sin líneas `Co-Authored-By`.
+- Subagentes con el modelo **sonnet**. No lanzar workflows multiagente sin preguntar.
+- **Producción solo se lee**, con consultas SELECT. Nunca imprimir contraseñas de bases de datos.
+  No escribir las credenciales del usuario en el equipo: inicia sesión él.
+- La máquina se queda sin RAM:
+  - Después de compilar, `./gradlew --stop` dentro de `android/`.
+  - No usar `--rerun-tasks`.
+  - No usar `pkill -f <patrón>` con el patrón en la misma línea de comando.
+- El usuario revisa el diseño pantalla por pantalla. Sus correcciones van al documento de diseño y
+  a la app.
+
+## Pruebas en los equipos
+
+- **HY416**, serie A025100AD013074: Android 9, arm64, 320 × 533 dp. **HY820**: Android 8.1.
+  Ya existe la regla de udev para USB (`/etc/udev/rules.d/51-android.rules`, vendor 0e8d).
+- Compilar solo para arm64 y conectar el servidor de desarrollo:
+
+  ```bash
+  cd android && ./gradlew :app:assembleDebug -PreactNativeArchitectures=arm64-v8a
+  adb install -r app/build/outputs/apk/debug/app-debug.apk
+  adb reverse tcp:8081 tcp:8081 && pnpm start
+  ```
+
+- **Lo que escribe en producción al probar** (los mismos endpoints que la app en uso):
+  - Escanear o consultar una **pre-guía la marca como LEÍDA** (`activo = 2`), aunque no se
+    registre. Lo hace `binesMovil/registrar-trazabilidad`.
+  - «Registrar» crea un movimiento real. Para probar, «Descartar».
+  - Leer una guía virtual registra que llegó.
+  - Lo registrado sin conexión se envía solo cuando vuelve la red.
+- Base de pruebas: el ERP local (`php artisan serve --host=10.51.15.19` en `../SPErp`) usa la
+  empresa 1, «(Pruebas)», en 10.50.1.13. Casi no tiene guías de despacho ni de remisión.
+- Leer producción desde `../SPErp`: `php artisan tinker` y luego
+  `setup_dbconns(true); DB::connection('conn1')` (10.51.1.202, `myad001`).
+  - Roles y usuarios en `Administracion.*`. Está incompleta: le faltan usuarios que sí registran.
+  - `log_t_mov_bin` no tiene índice por fecha: filtrar por rango de `id_movimiento_bin`.
+
+## Reglas del backend que la app debe respetar
+
+- Una guía puede registrarse otra vez en el mismo evento. Solo se rechaza si su **último**
+  movimiento es ese mismo evento. En análisis de calidad, despacho de meta y garita interna no se
+  repite la misma dirección. La app no valida duplicados por su cuenta: traduce el rechazo a un
+  mensaje formal.
+- El ERP todavía no manda la cédula del chofer ni el código del vehículo. Mientras no lleguen, esas
+  filas no se muestran.
+- `guardarConfig` (guías de remisión entre plantas) confirma el movimiento y después responde 404,
+  «Error al actualizar estado!!!». Se cuenta como guardado.
+- El lote sin conexión de la app vieja tiene `sin_pesca` y la fecha invertidos, y el backend los
+  vuelve a invertir. No arreglar un solo lado.
