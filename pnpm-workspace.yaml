@@ -1,0 +1,4 @@
+nodeLinker: hoisted
+allowBuilds:
+  # Trae binarios precompilados por plataforma; su script de compilación es solo un respaldo.
+  '@parcel/watcher': false
