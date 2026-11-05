@@ -52,13 +52,28 @@ Roles y uso en producción: https://claude.ai/artifact/HxLVQtHybeH6BKZHzoAMeo
   - `expo-sqlite` para la cola de registros sin conexión y el historial.
   - `expo-sqlite/kv-store` para preferencias.
 - **Hardware Hopeland**: módulo local de Expo en `modules/hopeland` (Kotlin). Envuelve los SDK de
-  Hopeland (`.aar`, `.jar` y `.so`). La API para JavaScript vive en `src/hardware/`.
+  Hopeland (`.aar`, `.jar` y `.so`). La API para JavaScript vive en `src/hardware/` y ya define lo
+  que el módulo tiene que exponer (`Hopeland`: `escucharGatillo`, `leerCodigo`, `abrirRfid`,
+  `iniciarLecturaRfid`, `detenerLecturaRfid`, `cerrarRfid`, `pitar` y los eventos `onGatillo` y
+  `onTag`). Sin el módulo, las pantallas avisan que el lector no está disponible.
+- **PDF de guías virtuales**: módulo local `modules/visor-pdf` con el `PdfRenderer` de Android.
+- **Íconos**: Lucide (`lucide-react-native`), importados de a uno en `components/ui/Icon.tsx`
+  (`lucide-react-native/icons/<archivo>`). Algunos archivos tienen otro nombre que el ícono
+  (`circle-exclamation-point`, `triangle-exclamation-point`, `rotate-ccw-clock`).
+- **Fechas y horas**: el diálogo nativo de `@react-native-community/datetimepicker`.
 
 ## Estructura de `src/`
 
-- `App.tsx`: proveedores (tema, Query, navegación).
-- `navigation/`: stack y tipos de rutas.
-- `features/<funcionalidad>/`: pantallas, hooks y servicios de cada funcionalidad.
+- `App.tsx`: proveedores (área segura, Query, navegación) y el envío de lo pendiente.
+- `navigation/`: stack, tipos de rutas y `rutas.ts` (qué pantalla abre cada opción del menú del ERP).
+- `features/<funcionalidad>/`: pantallas, hooks y servicios de cada funcionalidad:
+  - `sesion`: login, elegir planta, la sesión guardada y el menú del ERP.
+  - `inicio`: Inicio, Historial, Perfil, menú lateral y el armado por rol.
+  - `eventos`: catálogo de los 19 eventos, captura, registro y cola sin conexión.
+  - `remision`: guías de remisión y su lectura RFID. `exportacion`: salida y sellado.
+  - `consultas`: Validar personal, guías virtuales y su PDF.
+  - `pendientes`: envío de lo guardado sin conexión.
+- Las reglas sin red ni base (`reglas.ts`, `armado.ts`, `catalogo.ts`) tienen pruebas en `__tests__/`.
 - `components/ui/`: primitivas del sistema de diseño.
 - `styles/theme.ts`: tokens claro y oscuro del Sistema de Diseño Santa Priscila. Los colores solo
   salen de ahí; ESLint prohíbe hex en el resto de `src/`.
@@ -100,26 +115,32 @@ Actualiza esta sección al cerrar cada tarea.
 - `src/App.tsx` todavía es un marcador.
 - El primer development build para arm64 compiló, en 2 min 44 s, y quedó instalado en el HY416 como
   `com.santapriscila.mobileapp.dev`, junto a la app en uso.
-- Falta ver la pantalla cargando el JavaScript: el equipo estaba bloqueado. Si Metro no responde en
-  el puerto 8081, levántalo con `pnpm start`.
+
+**2026-11-05: pantallas y navegación migradas, sin probar contra el ERP.**
+- Portado de la rama `12-refactor-ctrl-bines`, con los ajustes del documento de diseño:
+  - Tema, primitivas y la fuente Aniuk.
+  - Navegación por estado de sesión, cliente HTTP con errores formales y sesión guardada.
+  - Login, elegir planta, Inicio por rol, menú lateral, Historial y Perfil (tema y letra).
+  - Captura de los 19 eventos, con la cola sin conexión en SQLite y el envío automático.
+  - Guías de remisión con su lectura RFID, Salida de exportación con sellado, Validar personal,
+    Guías virtuales y su PDF.
+- `pnpm lint`, `pnpm typecheck` y `pnpm test` (55 pruebas de las reglas portadas) pasan. El APK de
+  desarrollo compiló en 54 s y en el HY416 abre el inicio de sesión.
+- No se probó ninguna llamada al ERP: falta iniciar sesión en el equipo.
+- No se migró la actualización desde el ERP (`binesMovil/apk`): baja el APK de la app vieja, con
+  otro paquete. Se resuelve cuando se decida el paquete definitivo.
+- El visor del PDF todavía no acerca con los dedos.
+- El teclado: `Screen` usa `KeyboardAvoidingView` con `padding`. En el HY416 el botón sube con el
+  teclado; revisar en el HY820.
 
 **Plan:**
-1. Módulo nativo `modules/hopeland`: lector de códigos, gatillo y RFID. Se porta desde
-   `../CtrlBines/core/hardware` y `core/lectura`. Los SDK están en `../CtrlBines/app/libs` y
-   `app/src/main/jniLibs`. Es la parte con más riesgo: probarla pronto en el HY416.
-2. Base en JavaScript:
-   - Tema y primitivas, desde GS Mobile, con Ingreso verde y Salida roja.
-   - La fuente Aniuk.
-   - Navegación, cliente HTTP, sesión, login, elegir planta e Inicio.
-   - Menú lateral con lo que no son eventos.
-3. Captura de eventos con guía de movilización:
-   - Escaneo y campo para escribir la guía, siempre a la vista.
-   - Consulta y registro de la guía.
-   - Cola sin conexión en SQLite.
-   - Mensajes de rechazo formales.
-4. Guías de remisión con su lectura RFID, salida de exportación y sellado, guías virtuales con su
-   PDF, Validar personal, Historial y Perfil.
-5. Pruebas en el HY416 y el HY820 contra producción, con cuidado de lo que escribe (ver abajo).
+1. Probar en el HY416, pantalla por pantalla, con usuarios de cada rol. Escribir en el ERP solo con
+   cuidado (ver «Lo que escribe en producción al probar»).
+2. Módulo nativo `modules/hopeland`: lector de códigos, gatillo y RFID, con la interfaz que ya espera
+   `src/hardware/index.ts`. Se porta desde `../CtrlBines/app/.../hardware` (implementación con los
+   SDK), `core/hardware` y `core/lectura`. Los SDK están en `../CtrlBines/app/libs` y
+   `app/src/main/jniLibs`. Es la parte con más riesgo.
+3. Pruebas en el HY820 (Android 8.1).
 
 **Pendiente de decidir:**
 - El nombre definitivo de la app y del paquete. Para reemplazar la app en uso sin desinstalarla

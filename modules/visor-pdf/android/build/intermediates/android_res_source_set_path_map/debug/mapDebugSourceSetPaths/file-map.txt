@@ -1,0 +1,9 @@
+expo.modules.visorpdf.visor-pdf-pngs-0 /home/ccarpio/Documentos/code_projects/mobile_app/modules/visor-pdf/android/build/generated/res/pngs/debug
+expo.modules.visorpdf.visor-pdf-updated_navigation_xml-1 /home/ccarpio/Documentos/code_projects/mobile_app/modules/visor-pdf/android/build/generated/updated_navigation_xml/debug
+expo.modules.visorpdf.visor-pdf-mergeDebugResources-2 /home/ccarpio/Documentos/code_projects/mobile_app/modules/visor-pdf/android/build/intermediates/incremental/debug/mergeDebugResources/merged.dir
+expo.modules.visorpdf.visor-pdf-mergeDebugResources-3 /home/ccarpio/Documentos/code_projects/mobile_app/modules/visor-pdf/android/build/intermediates/incremental/debug/mergeDebugResources/stripped.dir
+expo.modules.visorpdf.visor-pdf-debug-4 /home/ccarpio/Documentos/code_projects/mobile_app/modules/visor-pdf/android/build/intermediates/merged_res/debug/mergeDebugResources
+expo.modules.visorpdf.visor-pdf-debug-5 /home/ccarpio/Documentos/code_projects/mobile_app/modules/visor-pdf/android/build/intermediates/packaged_res/debug/packageDebugResources
+expo.modules.visorpdf.visor-pdf-debug-6 /home/ccarpio/Documentos/code_projects/mobile_app/modules/visor-pdf/android/src/debug/res
+expo.modules.visorpdf.visor-pdf-main-7 /home/ccarpio/Documentos/code_projects/mobile_app/modules/visor-pdf/android/src/main/res
+gradleHome-0 /home/ccarpio/.gradle

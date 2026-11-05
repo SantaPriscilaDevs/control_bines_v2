@@ -30,7 +30,27 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     'expo-dev-client',
     'expo-secure-store',
     'expo-sqlite',
-    'expo-font',
+    [
+      'expo-font',
+      {
+        // Aniuk, la letra de GS Mobile, queda en el APK como una familia: se elige el peso con
+        // fontWeight (400, 500, 700 y 800) y está disponible desde el primer cuadro.
+        android: {
+          fonts: [
+            {
+              fontFamily: 'Aniuk',
+              fontDefinitions: [
+                { path: './assets/fonts/Aniuk-Regular.ttf', weight: 400 },
+                { path: './assets/fonts/Aniuk-Medium.ttf', weight: 500 },
+                { path: './assets/fonts/Aniuk-Bold.ttf', weight: 700 },
+                { path: './assets/fonts/Aniuk-Heavy.ttf', weight: 800 },
+              ],
+            },
+          ],
+        },
+      },
+    ],
+    '@react-native-community/datetimepicker',
     [
       'expo-build-properties',
       // minSdk 26: el HY820 trae Android 8.1 (API 27) y el HY416, Android 9.
