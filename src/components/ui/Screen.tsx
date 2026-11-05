@@ -1,5 +1,5 @@
-import React from 'react';
-import { KeyboardAvoidingView, ScrollView, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Keyboard, KeyboardAvoidingView, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { space } from '@/styles/theme';
 import { makeStyles } from '@/styles/makeStyles';
@@ -37,6 +37,16 @@ const useStyles = makeStyles(color => ({
 export default function Screen({ header, footer, bottomBar, scrollable = true, children }: ScreenProps) {
   const styles = useStyles();
   const insets = useSafeAreaInsets();
+  // Con el teclado abierto la barra de navegación queda debajo de él: el pie no la descuenta.
+  const [teclado, setTeclado] = useState(false);
+  useEffect(() => {
+    const abierto = Keyboard.addListener('keyboardDidShow', () => setTeclado(true));
+    const cerrado = Keyboard.addListener('keyboardDidHide', () => setTeclado(false));
+    return () => {
+      abierto.remove();
+      cerrado.remove();
+    };
+  }, []);
   return (
     <KeyboardAvoidingView style={styles.raiz} behavior="padding">
       {header}
@@ -47,7 +57,7 @@ export default function Screen({ header, footer, bottomBar, scrollable = true, c
       ) : (
         <View style={[styles.cuerpo, styles.contenido]}>{children}</View>
       )}
-      {footer ? <View style={[styles.pie, { paddingBottom: space[4] + (bottomBar ? 0 : insets.bottom) }]}>{footer}</View> : null}
+      {footer ? <View style={[styles.pie, { paddingBottom: space[4] + (bottomBar || teclado ? 0 : insets.bottom) }]}>{footer}</View> : null}
       {bottomBar}
     </KeyboardAvoidingView>
   );
