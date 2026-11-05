@@ -20,8 +20,7 @@ import {
   TextField,
   type Tono,
 } from '@/components/ui';
-import { lectorCodigos } from '@/hardware';
-import { useGatillo } from '@/hardware/useGatillo';
+import { useLectorCodigos } from '@/hardware/useLectorCodigos';
 import { esErrorApi, mensajeDe, tokenActual, urlDe } from '@/lib/api';
 import type { PantallaProps } from '@/navigation/tipos';
 import { radius, space } from '@/styles/theme';
@@ -54,16 +53,14 @@ export default function ValidarPersonal({ navigation }: PantallaProps<'ValidarPe
     },
   });
 
-  useGatillo(async () => {
-    if (consulta.isPending) return;
-    const lectura = await lectorCodigos.leer();
-    if (lectura.tipo === 'noDisponible') {
-      setAviso({ tono: 'danger', texto: lectura.motivo });
-    } else if (lectura.tipo === 'leido') {
-      const cedula = cedulaDelQr(lectura.texto);
+  useLectorCodigos({
+    alLeer: texto => {
+      const cedula = cedulaDelQr(texto);
       if (cedula) consulta.mutate(cedula);
       else setAviso({ tono: 'danger', texto: 'No se encontró una cédula en el código leído.' });
-    }
+    },
+    alFallar: motivo => setAviso({ tono: 'danger', texto: motivo }),
+    puedeLeer: () => !consulta.isPending,
   });
 
   const consultarEscrita = () => {

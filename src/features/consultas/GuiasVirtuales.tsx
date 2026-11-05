@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { View } from 'react-native';
 import { useMutation } from '@tanstack/react-query';
 import { Banner, Button, Card, Dato, Datos, Header, HeaderButton, Icon, ScanPrompt, Screen, StatusChip, Text, TextField, type Tono } from '@/components/ui';
-import { lectorCodigos } from '@/hardware';
-import { useGatillo } from '@/hardware/useGatillo';
+import { useLectorCodigos } from '@/hardware/useLectorCodigos';
 import { mensajeDe } from '@/lib/api';
 import type { PantallaProps } from '@/navigation/tipos';
 import { space } from '@/styles/theme';
@@ -48,11 +47,10 @@ export default function GuiasVirtuales({ navigation }: PantallaProps<'GuiasVirtu
     recepcion.mutate(codigo);
   };
 
-  useGatillo(async () => {
-    if (recepcion.isPending) return;
-    const lectura = await lectorCodigos.leer();
-    if (lectura.tipo === 'leido') recibir(lectura.texto);
-    else if (lectura.tipo === 'noDisponible') setAviso({ tono: 'danger', texto: lectura.motivo });
+  useLectorCodigos({
+    alLeer: recibir,
+    alFallar: motivo => setAviso({ tono: 'danger', texto: motivo }),
+    puedeLeer: () => !recepcion.isPending,
   });
 
   let titulo = 'Escanee la guía virtual';

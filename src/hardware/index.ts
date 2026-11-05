@@ -1,3 +1,4 @@
+import { PermissionsAndroid } from 'react-native';
 import { NativeModule, requireOptionalNativeModule } from 'expo';
 
 /**
@@ -12,13 +13,21 @@ type EventosHopeland = {
   onGatillo: (evento: { presionado: boolean }) => void;
   /** Un tag leído durante la lectura continua, repetidos incluidos. */
   onTag: (evento: { epc: string; rssi: number }) => void;
+  /**
+   * Un código leído por el servicio de escaneo del sistema (HY416), que atiende el gatillo por su
+   * cuenta. Solo llega mientras alguien escucha el gatillo.
+   */
+  onCodigo: (evento: { texto: string }) => void;
 };
 
 declare class HopelandModule extends NativeModule<EventosHopeland> {
   /** Si la pantalla visible espera el gatillo; si no, la tecla sigue su curso normal. */
   escucharGatillo(activo: boolean): void;
-  /** Lee un código de barras o QR. Espera hasta [esperaMs]; null si no leyó nada. */
-  leerCodigo(esperaMs: number): Promise<string | null>;
+  /**
+   * Lee un código de barras o QR (espera unos 3 s). `texto` vacío si no leyó nada; `motivo` si el
+   * lector no se pudo usar. Pita al leer.
+   */
+  leerCodigo(esperaMs: number): Promise<{ texto?: string; motivo?: string }>;
   /** Suelta el lector de códigos para que otra app lo pueda abrir. */
   liberarCodigos(): void;
   /** Abre el lector RFID. null si quedó listo; si no, el motivo. */
@@ -34,6 +43,13 @@ const Hopeland = requireOptionalNativeModule<HopelandModule>('Hopeland');
 
 const NO_DISPONIBLE = 'El lector de este equipo todavía no está disponible en esta versión.';
 
+/** El SDK del lector de códigos no abre sin el permiso «Teléfono». Se pide la primera vez. */
+async function permisoTelefono(): Promise<boolean> {
+  const permiso = PermissionsAndroid.PERMISSIONS.READ_PHONE_STATE;
+  if (await PermissionsAndroid.check(permiso)) return true;
+  return (await PermissionsAndroid.request(permiso)) === PermissionsAndroid.RESULTS.GRANTED;
+}
+
 /** Escuchar el gatillo: lo usa `useGatillo`. Devuelve cómo dejar de escuchar. */
 export function escucharGatillo(alPresionar: () => void, alSoltar: () => void): () => void {
   if (!Hopeland) return () => undefined;
@@ -43,6 +59,16 @@ export function escucharGatillo(alPresionar: () => void, alSoltar: () => void): 
     suscripcion.remove();
     Hopeland.escucharGatillo(false);
   };
+}
+
+/** Códigos que lee el servicio de escaneo del sistema (HY416). Devuelve cómo dejar de escuchar. */
+export function escucharCodigos(alLeer: (texto: string) => void): () => void {
+  if (!Hopeland) return () => undefined;
+  const suscripcion = Hopeland.addListener('onCodigo', evento => {
+    const texto = evento.texto.trim();
+    if (texto) alLeer(texto);
+  });
+  return () => suscripcion.remove();
 }
 
 export type ResultadoLectura =
@@ -57,11 +83,16 @@ export type ResultadoLectura =
 export const lectorCodigos = {
   async leer(): Promise<ResultadoLectura> {
     if (!Hopeland) return { tipo: 'noDisponible', motivo: NO_DISPONIBLE };
+    if (!(await permisoTelefono())) {
+      return { tipo: 'noDisponible', motivo: 'Falta el permiso de «Teléfono» para usar el lector. Actívelo en los ajustes de la app.' };
+    }
     try {
-      const texto = (await Hopeland.leerCodigo(3_000))?.trim();
+      const resultado = await Hopeland.leerCodigo(3_000);
+      if (resultado.motivo) return { tipo: 'noDisponible', motivo: resultado.motivo };
+      const texto = resultado.texto?.trim();
       return texto ? { tipo: 'leido', texto } : { tipo: 'sinLectura' };
-    } catch (error) {
-      return { tipo: 'noDisponible', motivo: error instanceof Error ? error.message : NO_DISPONIBLE };
+    } catch {
+      return { tipo: 'noDisponible', motivo: 'El lector dejó de responder. Intente nuevamente.' };
     }
   },
   liberar(): void {

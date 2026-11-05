@@ -20,8 +20,7 @@ import {
   TypeTag,
   type Tono,
 } from '@/components/ui';
-import { lectorCodigos } from '@/hardware';
-import { useGatillo } from '@/hardware/useGatillo';
+import { useLectorCodigos } from '@/hardware/useLectorCodigos';
 import { esErrorApi } from '@/lib/api';
 import { queryKeys } from '@/lib/queryClient';
 import { enLineaAhora, useEnLinea } from '@/lib/red';
@@ -121,11 +120,10 @@ export default function Captura({ route, navigation }: PantallaProps<'Captura'>)
     return f.tipo === 'validando' || (f.tipo === 'leida' && f.registrando);
   };
 
-  useGatillo(async () => {
-    if (ocupado()) return;
-    const lectura = await lectorCodigos.leer();
-    if (lectura.tipo === 'leido') procesar(lectura.texto);
-    else if (lectura.tipo === 'noDisponible') setFase({ tipo: 'lista', aviso: { tono: 'danger', texto: lectura.motivo } });
+  useLectorCodigos({
+    alLeer: procesar,
+    alFallar: motivo => setFase({ tipo: 'lista', aviso: { tono: 'danger', texto: motivo } }),
+    puedeLeer: () => !ocupado(),
   });
 
   const buscarEscrita = () => {

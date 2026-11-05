@@ -1,0 +1,22 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'com.santapriscila.mobileapp'
+version = '0.1.0'
+
+android {
+  namespace "expo.modules.hopeland"
+  defaultConfig {
+    versionCode 1
+    versionName '0.1.0'
+  }
+}
+
+dependencies {
+  // Los SDK de Hopeland, los mismos de CtrlBines (`app/libs`). Las librerías nativas que no vienen
+  // dentro de los .aar están en `src/main/jniLibs`.
+  implementation fileTree(dir: 'libs', include: ['*.aar', '*.jar'])
+  implementation 'androidx.core:core:1.17.0'
+}

@@ -1,0 +1,9 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <!-- El SDK del lector de códigos lo exige (lee datos del equipo); sin él no abre. -->
+  <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+
+  <!-- El servicio de escaneo del sistema del HY416: si está, se lee con él y no con el SDK. -->
+  <queries>
+    <package android:name="com.eastaeon.scandecoderservice" />
+  </queries>
+</manifest>
