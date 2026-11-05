@@ -42,7 +42,9 @@ Roles y uso en producción: https://claude.ai/artifact/HxLVQtHybeH6BKZHzoAMeo
   edita a mano: los cambios nativos van en `app.config.ts` o en un config plugin.
 - **Ambientes**: `.env` (no se versiona; plantilla en `.env.example`). `APP_VARIANT=development`
   instala «Mobile App DEV» con el paquete `com.santapriscila.mobileapp.dev`, junto a la app en uso.
-  `EXPO_PUBLIC_API_URL` es la API del ERP. Producción: `http://192.168.1.42/api/auth/`.
+  `EXPO_PUBLIC_API_URL` es la API del ERP. Producción: `https://www.santa-priscila.com.ec/api/auth/`
+  (en la red interna resuelve a 10.51.1.137). `192.168.1.42` no es producción: es otro despliegue del
+  ERP, sin el front compilado.
 - **Navegación**: React Navigation, stack nativo tipado (`src/navigation/`), como GS Mobile. No se
   usa Expo Router.
 - **Estado**: TanStack Query para lo del servidor y zustand para lo de cliente.
