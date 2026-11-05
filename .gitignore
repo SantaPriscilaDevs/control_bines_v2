@@ -44,3 +44,6 @@ yarn-error.*
 .env
 .env.*
 !.env.example
+
+# Lo que compilan los módulos locales
+modules/*/android/build/
