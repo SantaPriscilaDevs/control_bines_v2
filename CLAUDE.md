@@ -1,7 +1,8 @@
 # mobile_app
 
-Reemplazo de **CtrlBines** en React Native con Expo. Corre en handhelds Hopeland: HY820 y HY830
-con Android 8.1 y HY416 con Android 9. «mobile_app» es un nombre provisional.
+Reemplazo de **CtrlBines** en React Native con Expo. Corre en handhelds Hopeland: HY820 con
+Android 8.1, HY830 con Android 13 y HY416 con Android 9. Por ahora la app se llama «Ctrl Bines» y
+el repositorio, «mobile_app»: el nombre definitivo y el paquete están por decidir.
 
 ## Alcance
 
@@ -41,7 +42,8 @@ Roles y uso en producción: https://claude.ai/artifact/HxLVQtHybeH6BKZHzoAMeo
 - **`android/` se genera** con `pnpm prebuild` desde `app.config.ts` y está en `.gitignore`. No se
   edita a mano: los cambios nativos van en `app.config.ts` o en un config plugin.
 - **Ambientes**: `.env` (no se versiona; plantilla en `.env.example`). `APP_VARIANT=development`
-  instala «Mobile App DEV» con el paquete `com.santapriscila.mobileapp.dev`, junto a la app en uso.
+  instala «Ctrl Bines DEV» con el paquete `com.santapriscila.mobileapp.dev`, junto a la app en uso.
+  `APP_VARIANT=production` instala «Ctrl Bines» con `com.santapriscila.mobileapp`.
   `EXPO_PUBLIC_API_URL` es la API del ERP. Producción: `https://www.santa-priscila.com.ec/api/auth/`
   (en la red interna resuelve a 10.51.1.137). `192.168.1.42` no es producción: es otro despliegue del
   ERP, sin el front compilado.
@@ -58,6 +60,11 @@ Roles y uso en producción: https://claude.ai/artifact/HxLVQtHybeH6BKZHzoAMeo
   que el módulo tiene que exponer (`Hopeland`: `escucharGatillo`, `leerCodigo`, `abrirRfid`,
   `iniciarLecturaRfid`, `detenerLecturaRfid`, `cerrarRfid`, `pitar` y los eventos `onGatillo` y
   `onTag`). Sin el módulo, las pantallas avisan que el lector no está disponible.
+- **APK de producción**: `assembleRelease` en local, con `APP_VARIANT=production` también al
+  compilar (los pasos están en el README). R8 está activo: las reglas que dejan intactos los SDK de
+  Hopeland están en `modules/hopeland/android/consumer-rules.pro`; un SDK nuevo suma ahí sus
+  paquetes. Por ahora se firma con la clave de depuración de la plantilla de Expo, que no sirve para
+  distribuir.
 - **PDF de guías virtuales**: módulo local `modules/visor-pdf` con el `PdfRenderer` de Android.
 - **Íconos**: Lucide (`lucide-react-native`), importados de a uno en `components/ui/Icon.tsx`
   (`lucide-react-native/icons/<archivo>`). Algunos archivos tienen otro nombre que el ícono
@@ -135,6 +142,23 @@ Actualiza esta sección al cerrar cada tarea.
 - El teclado: `Screen` usa `KeyboardAvoidingView` con `padding`. En el HY416 el botón sube con el
   teclado; revisar en el HY820.
 
+**2026-11-06: APK de demostración.**
+- La app se llama «Ctrl Bines» por ahora («Ctrl Bines DEV» el development build).
+- APK de producción para arm64, con el JavaScript adentro, apuntando a la API de producción.
+  Compiló en 1 min 45 s. Quedó instalado como `com.santapriscila.mobileapp` en el HY830, el HY416
+  y el HY820, y en los tres abre el inicio de sesión sin Metro. Copia en
+  `dist/ctrl-bines-0.1.0.apk` (no se versiona).
+- En el HY830 lee el servicio de escaneo del sistema (`com.barcode.scanner`), que el SDK configura
+  al abrir el lector: avisa por broadcast y se apaga al soltar el gatillo (tope de 5 s).
+- Falta probar el gatillo con este APK en el HY416 y el HY820. En el HY820 lee el SDK, que pasa
+  por R8: si no lee, falta una regla en `consumer-rules.pro`.
+- El gatillo del HY830 dejó de leer después de reiniciar el equipo. El servicio de escaneo tenía
+  activa «interceptar la tecla de escaneo» (`InterceptScanKey`, `persist.sys.blockScankey=1`): le
+  deja el gatillo a otra app y no lee. La activó alguien fuera de la app, quedó guardada y el
+  servicio la vuelve a aplicar cada vez que se enciende. Ahora `LectorCodigos` la apaga al abrir
+  el lector (`enableBlockScankey(false)`). Se probó activándola a propósito: al entrar a Validar
+  personal pasa a 0 y el gatillo lee.
+
 **Plan:**
 1. Probar en el HY416, pantalla por pantalla, con usuarios de cada rol. Escribir en el ERP solo con
    cuidado (ver «Lo que escribe en producción al probar»).
@@ -165,7 +189,9 @@ Actualiza esta sección al cerrar cada tarea.
 
 ## Pruebas en los equipos
 
-- **HY416**, serie A025100AD013074: Android 9, arm64, 320 × 533 dp. **HY820**: Android 8.1.
+- **HY416**, serie A025100AD013074: Android 9, arm64, 320 × 533 dp.
+  **HY820** (modelo HYH820), serie 82003D0020100053: Android 8.1, arm64.
+  **HY830** (modelo K626), serie 83003E0025090063: Android 13, arm64, 1080 × 2160 px.
   Ya existe la regla de udev para USB (`/etc/udev/rules.d/51-android.rules`, vendor 0e8d).
 - Compilar solo para arm64 y conectar el servidor de desarrollo:
 

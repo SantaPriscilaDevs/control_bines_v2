@@ -1,6 +1,7 @@
-# Mobile App
+# Ctrl Bines
 
-Reemplazo de **CtrlBines** hecho en React Native con Expo. Corre solo en Android, en los handhelds
+Reemplazo de **CtrlBines** hecho en React Native con Expo. «Ctrl Bines» es un nombre provisional,
+como el del repositorio, `mobile_app`. Corre solo en Android, en los handhelds
 Hopeland **HY820** (Android 8.1), **HY830** (Android 13) y **HY416** (Android 9). El lector de
 códigos, el gatillo y el RFID funcionan solo en esos equipos. En un teléfono o en el emulador se
 pueden ver las pantallas, pero el lector avisa que no está disponible.
@@ -174,8 +175,8 @@ cambios nativos van en `app.config.ts` o en los módulos de `modules/`.
 
 | Variable | Valor | Efecto |
 | --- | --- | --- |
-| `APP_VARIANT` | `development` | Instala «Mobile App DEV» (paquete `com.santapriscila.mobileapp.dev`) al lado de la app en uso |
-| | `production` | El paquete definitivo |
+| `APP_VARIANT` | `development` | Instala «Ctrl Bines DEV» (paquete `com.santapriscila.mobileapp.dev`) al lado de la app en uso |
+| | `production` | Instala «Ctrl Bines» (paquete `com.santapriscila.mobileapp`), sin la etiqueta DEV |
 | `EXPO_PUBLIC_API_URL` | `http://10.51.15.19:8000/api/auth/` | El ERP local de pruebas, empresa «(Pruebas)» |
 | | `https://www.santa-priscila.com.ec/api/auth/` | Producción |
 
@@ -187,8 +188,8 @@ en [CLAUDE.md](CLAUDE.md).
 
 ## Instalar el development build en un handheld
 
-Esto es para desarrollar. El APK de producción, firmado y con el JavaScript adentro, todavía no
-está armado: es uno de los pendientes del proyecto.
+Esto es para desarrollar. Para dejar la app instalada y usarla sin la computadora, ver
+[Compilar el APK de producción](#compilar-el-apk-de-producción).
 
 1. En el handheld, activar las opciones de desarrollador: *Ajustes → Acerca del teléfono* y tocar
    siete veces *Número de compilación*. Luego, en *Opciones de desarrollador*, activar
@@ -226,13 +227,13 @@ está armado: es uno de los pendientes del proyecto.
    pnpm start
    ```
 
-   Abrir «Mobile App DEV» en el handheld. Si pide un servidor, elegir `http://localhost:8081`.
+   Abrir «Ctrl Bines DEV» en el handheld. Si pide un servidor, elegir `http://localhost:8081`.
 
 ### Sin cable
 
 El handheld y la computadora tienen que estar en la misma red Wi-Fi.
 
-- **Metro por Wi-Fi:** `pnpm start` sin `adb reverse`. En «Mobile App DEV», ingresar
+- **Metro por Wi-Fi:** `pnpm start` sin `adb reverse`. En «Ctrl Bines DEV», ingresar
   `http://<IP de la computadora>:8081`. El firewall de la computadora tiene que dejar pasar el
   puerto 8081.
 - **adb por Wi-Fi**, para instalar el APK y leer registros:
@@ -240,6 +241,46 @@ El handheld y la computadora tienen que estar en la misma red Wi-Fi.
     y en la computadora `adb pair <ip>:<puerto>` y `adb connect <ip>:<puerto>`.
   - HY820 y HY416 (Android 8.1 y 9): no tienen depuración inalámbrica. Hace falta el cable una
     vez para `adb tcpip 5555`; después, `adb connect <ip>:5555` hasta que el equipo se reinicie.
+
+## Compilar el APK de producción
+
+Lleva el JavaScript adentro y funciona sin computadora: es la app que se usa en campo y en las
+demostraciones. Se instala como «Ctrl Bines» (`com.santapriscila.mobileapp`), al lado del
+*development build*.
+
+1. Revisar la API en `.env`: `EXPO_PUBLIC_API_URL` queda fija dentro del APK. Para apuntar a otro
+   servidor hay que volver a compilar.
+2. Generar `android/` para producción, compilar y guardar el APK en `dist/` (no se versiona):
+
+   ```bash
+   APP_VARIANT=production pnpm prebuild
+   cd android
+   APP_VARIANT=production ./gradlew :app:assembleRelease -PreactNativeArchitectures=arm64-v8a
+   cp app/build/outputs/apk/release/app-release.apk ../dist/ctrl-bines-0.1.0.apk
+   ./gradlew --stop
+   cd ..
+   ```
+
+   `APP_VARIANT=production` va en los dos comandos: Gradle vuelve a leer `app.config.ts` y, sin la
+   variable, la app se mostraría como de desarrollo. Tarda alrededor de 2 minutos.
+3. Dejar `android/` otra vez en desarrollo. Si se omite, `pnpm android` instala un *development
+   build* encima de la app de producción:
+
+   ```bash
+   pnpm prebuild
+   ```
+
+4. Instalar: `adb install -r dist/ctrl-bines-0.1.0.apk`. Sin `adb`, copiar el APK al handheld y
+   abrirlo desde el gestor de archivos (pide permitir la instalación de apps de origen desconocido).
+
+Notas:
+
+- Por ahora se firma con la clave de depuración de la plantilla de Expo. Sirve para pruebas y
+  demostraciones, no para distribuir: la firma definitiva está pendiente. Como la clave es siempre
+  la misma, `adb install -r` actualiza la app sin perder la sesión.
+- R8 reduce el código del APK. Los SDK de Hopeland se protegen con
+  `modules/hopeland/android/consumer-rules.pro`: si se agrega otro SDK, sus paquetes van ahí. Si el
+  lector funciona en el *development build* pero no en este APK, falta una regla.
 
 ## Trabajo diario
 
