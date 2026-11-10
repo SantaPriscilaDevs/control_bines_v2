@@ -11,6 +11,8 @@ android {
   defaultConfig {
     versionCode 1
     versionName '0.1.0'
+    // El APK de producción pasa por R8: estas reglas dejan los SDK como vienen.
+    consumerProguardFiles 'consumer-rules.pro'
   }
 }
 

@@ -9,7 +9,8 @@ const esDesarrollo = variante === 'development';
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: esDesarrollo ? 'Mobile App DEV' : 'Mobile App',
+  // Nombre provisional: el definitivo y el paquete están por decidir.
+  name: esDesarrollo ? 'Ctrl Bines DEV' : 'Ctrl Bines',
   slug: 'mobile_app',
   version: '0.1.0',
   orientation: 'portrait',
