@@ -17,7 +17,7 @@ interface Opciones {
 
 /**
  * Lectura de códigos de barras y QR mientras la pantalla está visible, por el camino que tenga el
- * equipo: en el HY820 y el HY830 el gatillo lee con el SDK de Hopeland; en el HY416 lee el servicio
+ * equipo: en el HY820 el gatillo lee con el SDK de Hopeland; en el HY416 y el HY830 lee el servicio
  * del sistema y el código llega solo.
  */
 export function useLectorCodigos({ alLeer, alFallar, puedeLeer }: Opciones): void {

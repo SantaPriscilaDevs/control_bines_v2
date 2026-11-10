@@ -21,10 +21,9 @@ class HopelandModule : Module() {
   }
 
   /**
-   * En los equipos con el servicio de escaneo del sistema, lo que ese servicio lee llega por
-   * broadcast. En el HY416 es el único camino: su gatillo (tecla 292) lo atiende el sistema y el SDK
-   * de Hopeland no conoce el equipo. En el HY820 el servicio está pero su gatillo (F9) no lo dispara:
-   * ahí lee el SDK.
+   * En los equipos con un servicio de escaneo del sistema, lo que ese servicio lee llega por
+   * broadcast. En el HY416 y el HY830 es el camino de lectura: el sistema atiende el gatillo por su
+   * cuenta. En el HY820 el servicio está pero su gatillo (F9) no lo dispara: ahí lee el SDK.
    */
   private val lectorSistema by lazy {
     if (LectorSistema.disponible(contexto)) {
@@ -47,6 +46,8 @@ class HopelandModule : Module() {
 
     OnActivityEntersForeground {
       ponerGatillo()
+      // Al irse atrás se soltó el lector; en el HY830 tiene que estar abierto antes del gatillo.
+      if (escuchando) lectorCodigos.preparar()
       lectorRfid.reanudar()
     }
 
@@ -58,13 +59,17 @@ class HopelandModule : Module() {
 
     Function("escucharGatillo") { activo: Boolean ->
       escuchando = activo
-      if (activo) ponerGatillo()
+      if (activo) {
+        ponerGatillo()
+        lectorCodigos.preparar()
+      }
     }
 
     AsyncFunction("leerCodigo") { _: Int, promise: Promise ->
       lectorCodigos.leer { resultado ->
         // El HY820 trae el servicio del sistema pero su gatillo lee con el SDK. Si el SDK no abre y
-        // el sistema lee por su cuenta (HY416), no es un error: el código llega por `onCodigo`.
+        // el sistema lee por su cuenta (HY416), no es un error: el código llega por `onCodigo`,
+        // igual que en el HY830.
         if (resultado.containsKey("motivo") && resultado["sinLector"] == "1" && lectorSistema != null) {
           promise.resolve(mapOf("texto" to ""))
         } else {

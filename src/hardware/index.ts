@@ -14,8 +14,8 @@ type EventosHopeland = {
   /** Un tag leído durante la lectura continua, repetidos incluidos. */
   onTag: (evento: { epc: string; rssi: number }) => void;
   /**
-   * Un código leído por el servicio de escaneo del sistema (HY416), que atiende el gatillo por su
-   * cuenta. Solo llega mientras alguien escucha el gatillo.
+   * Un código leído por el servicio de escaneo del sistema (HY416 y HY830), que atiende el gatillo
+   * por su cuenta. Solo llega mientras alguien escucha el gatillo.
    */
   onCodigo: (evento: { texto: string }) => void;
 };
@@ -61,7 +61,7 @@ export function escucharGatillo(alPresionar: () => void, alSoltar: () => void): 
   };
 }
 
-/** Códigos que lee el servicio de escaneo del sistema (HY416). Devuelve cómo dejar de escuchar. */
+/** Códigos que lee el servicio de escaneo del sistema (HY416 y HY830). Devuelve cómo dejar de escuchar. */
 export function escucharCodigos(alLeer: (texto: string) => void): () => void {
   if (!Hopeland) return () => undefined;
   const suscripcion = Hopeland.addListener('onCodigo', evento => {

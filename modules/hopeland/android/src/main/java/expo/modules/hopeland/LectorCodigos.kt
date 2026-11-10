@@ -5,6 +5,8 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.util.Log
 import androidx.core.content.ContextCompat
+import com.barcode.barcode.BarcodeUtility
+import com.hopeland.pda.scanner.scanner2d.W001A3
 import com.pda.scanner.ScanReader
 import com.pda.scanner.Scanner
 import java.nio.charset.Charset
@@ -14,6 +16,9 @@ import java.util.concurrent.atomic.AtomicBoolean
 /**
  * Lector de códigos de los Hopeland con el SDK `pdasdk`, como `HopelandLectorCodigos` de la versión
  * Kotlin. Todo pasa por un único hilo propio: `decode()` bloquea hasta unos 3 s.
+ *
+ * En el HY830 el SDK no lee: configura el servicio de escaneo del sistema (`com.barcode.scanner`),
+ * que lee solo al apretar el gatillo y avisa el código por broadcast ([LectorSistema]).
  */
 internal class LectorCodigos(private val context: Context) {
 
@@ -44,13 +49,11 @@ internal class LectorCodigos(private val context: Context) {
     if (ContextCompat.checkSelfPermission(context, Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
       return motivo("Falta el permiso de «Teléfono» para usar el lector. Actívelo en los ajustes de la app.")
     }
-    val abierto = try {
-      escaner ?: abrir()
-    } catch (e: Throwable) {
-      // Fuera de un Hopeland el SDK no encuentra sus librerías nativas.
-      Log.w(TAG, "No se pudo abrir el lector", e)
-      null
-    } ?: return motivo("Este equipo no tiene lector de códigos o no se pudo abrir.") + ("sinLector" to "1")
+    val abierto = abrirSiHaceFalta()
+      ?: return motivo("Este equipo no tiene lector de códigos o no se pudo abrir.") + ("sinLector" to "1")
+    // El gatillo ya encendió el lector del sistema: si el SDK también lo pide, lo deja encendido
+    // aunque se suelte el gatillo. El código llega por broadcast.
+    if (abierto is W001A3) return mapOf("texto" to "")
     val bytes = try {
       abierto.decode()
     } catch (e: Throwable) {
@@ -68,10 +71,48 @@ internal class LectorCodigos(private val context: Context) {
     ejecutor.execute(::cerrar)
   }
 
+  /**
+   * Abre el lector antes del primer gatillo. En el HY830 hace falta: el sistema lee al apretar el
+   * gatillo, antes de que la app pida nada, y tiene que estar configurado para avisar por broadcast.
+   */
+  fun preparar() {
+    ejecutor.execute {
+      if (ContextCompat.checkSelfPermission(context, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED) {
+        abrirSiHaceFalta()
+      }
+    }
+  }
+
+  private fun abrirSiHaceFalta(): Scanner? = try {
+    escaner ?: abrir()
+  } catch (e: Throwable) {
+    // Fuera de un Hopeland el SDK no encuentra sus librerías nativas.
+    Log.w(TAG, "No se pudo abrir el lector", e)
+    null
+  }
+
   private fun abrir(): Scanner? {
     SdkHopeland.iniciar(context)
     val instancia = ScanReader.getScannerInstance() ?: return null
-    return if (instancia.open(context)) instancia.also { escaner = it } else null
+    if (!instancia.open(context)) return null
+    if (instancia is W001A3) configurarServicioDelSistema()
+    return instancia.also { escaner = it }
+  }
+
+  /**
+   * `open()` del SDK deja al servicio del HY830 avisando por broadcast, sin sonido y encendido 5 s
+   * por pulsación aunque se suelte el gatillo. Se ajusta para que funcione como el HY416: lee
+   * mientras el gatillo está apretado (hasta 5 s), se apaga al soltarlo y suena al leer.
+   *
+   * Además se apaga «interceptar la tecla de escaneo» (`persist.sys.blockScankey`): con esa opción
+   * el servicio le deja el gatillo a otra app y no lee. Se activa desde los ajustes del lector o
+   * desde otra app, queda guardada y el servicio la vuelve a aplicar cada vez que se enciende.
+   */
+  private fun configurarServicioDelSistema() {
+    val servicio = BarcodeUtility.getInstance()
+    servicio.enableBlockScankey(context, false)
+    servicio.setReleaseScan(context, true)
+    servicio.enablePlaySuccessSound(context, true)
   }
 
   private fun cerrar() {

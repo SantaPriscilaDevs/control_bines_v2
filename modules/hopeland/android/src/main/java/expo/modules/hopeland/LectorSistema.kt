@@ -9,9 +9,11 @@ import android.util.Log
 import androidx.core.content.ContextCompat
 
 /**
- * Lector de códigos del propio Android, en los equipos que traen el servicio de escaneo del
- * fabricante (`com.eastaeon.scandecoderservice`, el del HY416). Ahí el sistema atiende el gatillo,
- * lee y avisa el resultado por broadcast; el SDK de Hopeland no conoce estos equipos.
+ * Lector de códigos del propio Android, en los equipos que traen un servicio de escaneo del
+ * fabricante: el sistema atiende el gatillo, lee y avisa el resultado por broadcast.
+ * - HY416: `com.eastaeon.scandecoderservice`. El SDK de Hopeland no conoce el equipo.
+ * - HY830: `com.barcode.scanner`. El SDK lo configura al abrir ([LectorCodigos]) para que avise
+ *   por `com.scanner.broadcast`.
  */
 internal class LectorSistema(private val context: Context, private val alLeer: (String) -> Unit) {
 
@@ -60,15 +62,24 @@ internal class LectorSistema(private val context: Context, private val alLeer: (
 
   companion object {
     private const val TAG = "LectorSistema"
-    private const val SERVICIO = "com.eastaeon.scandecoderservice"
+    private val SERVICIOS = listOf("com.eastaeon.scandecoderservice", "com.barcode.scanner")
 
-    /** Las dos salidas por broadcast que trae el servicio; la activa depende de su configuración. */
-    private val ACCIONES = listOf("com.android.receive_scan_action", "com.android.server.scannerservice.broadcast")
+    /**
+     * Las salidas por broadcast: las dos del servicio del HY416 (la activa depende de su
+     * configuración) y la que el SDK le fija al del HY830.
+     */
+    private val ACCIONES = listOf(
+      "com.android.receive_scan_action",
+      "com.android.server.scannerservice.broadcast",
+      "com.scanner.broadcast",
+    )
     private val CLAVES = listOf("data", "scannerdata", "barcode", "barcode_string", "barcodeString")
 
-    /** Si este equipo lee con el servicio del sistema y no con el SDK de Hopeland. */
-    fun disponible(context: Context): Boolean = try {
-      context.packageManager.getPackageInfo(SERVICIO, 0)
+    /** Si este equipo trae un servicio de escaneo que avisa por broadcast. */
+    fun disponible(context: Context): Boolean = SERVICIOS.any { instalado(context, it) }
+
+    private fun instalado(context: Context, paquete: String): Boolean = try {
+      context.packageManager.getPackageInfo(paquete, 0)
       true
     } catch (_: PackageManager.NameNotFoundException) {
       false
